@@ -1,0 +1,27 @@
+# Planche verticale : une colonne centrale à franchir par le haut, percée de deux boyaux.
+# Route de base : cinq corniches en zigzag, le sommet, puis on se laisse tomber vers la mire.
+# Raccourci (un tracé allié) : le boyau haut, par la cheminée au bout de la troisième corniche.
+# Grand raccourci (deux tracés ou courte échelle) : le boyau bas, par la cheminée au pied de la colonne.
+# Dans un boyau on ne peut ni contourner ni piétiner : c'est là qu'un corps adverse bloque vraiment.
+name: Colonne
+---
+#...................
+#...................
+#...................
+#.............######
+#......#####..#.....
+#.............#.....
+#.............#.####
+#####.........#.####
+#...............####
+#...............####
+#......#############
+#.............#.####
+#.G...........#.....
+#####.........#.....
+#...............####
+#...............####
+#......#####....####
+#...............####
+#.S.........^^..####
+####################

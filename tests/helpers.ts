@@ -70,3 +70,41 @@ export function events(sim: Sim, type: number): number[] {
 export function insideSolid(sim: Sim): boolean {
   return sim.tileSolid(sim.x, sim.y) || sim.ghostHit(sim.x, sim.y) >= 0;
 }
+
+// Route DSL, used to author reference runs. Tokens are those of inputs(), plus conditions
+// resolved against the live sim (the result is baked into a plain timed input string):
+//   R>300 hold until x >= 300    L<120 hold until x <= 120
+//   J^200 hold until y <= 200    .v250 hold until y >= 250
+//   .@150 hold until tick >= 150 R!    hold until standing on something (at least one tick)
+export function drive(sim: Sim, dsl: string, log?: (line: string) => void): number[] {
+  const out: number[] = [];
+  for (const tok of dsl.trim().split(/\s+/)) {
+    const m = /^([LRDJX.]+)(?:(\d+)|([<>^v@])(\d+)|(!))?$/.exec(tok);
+    if (!m) throw new Error(`bad route token "${tok}"`);
+    let bits = 0;
+    for (const ch of m[1]) bits |= BITS[ch];
+    const n = Number(m[4]), op = m[5] ?? m[3];
+    const met = () => (op === '>' ? sim.x >= n : op === '<' ? sim.x <= n : op === '^' ? sim.y <= n : op === 'v' ? sim.y >= n : op === '@' ? sim.tick >= n : sim.grounded);
+    let count = op ? 0 : Number(m[2] || 1);
+    for (let i = 0; op ? i === 0 && op === '!' || !met() : i < count; i++) {
+      if (sim.done) break;
+      if (i > 900) throw new Error(`route token "${tok}" never completes (x=${sim.x} y=${sim.y} tick=${sim.tick})`);
+      sim.step(bits); out.push(bits);
+    }
+    log?.(`${tok.padEnd(8)} t=${String(sim.tick).padStart(3)} x=${String(sim.x).padStart(3)} y=${String(sim.y).padStart(3)} ${sim.grounded ? 'ground' : 'air   '}${sim.dead ? ' DEAD' : ''}${sim.done ? ' DONE' : ''}`);
+  }
+  return out;
+}
+
+const NAMES = 'LRDJX';
+export function rle(ins: number[]): string {
+  const out: string[] = [];
+  for (let i = 0; i < ins.length; ) {
+    let j = i;
+    while (j < ins.length && ins[j] === ins[i]) j++;
+    const keys = [...NAMES].filter((_, b) => ins[i] & (1 << b)).join('') || '.';
+    out.push(keys + (j - i));
+    i = j;
+  }
+  return out.join(' ');
+}

@@ -36,6 +36,8 @@ export function newRun(seat: number, round: number): Run {
 }
 
 const approach = (v: number, target: number, step: number) => (v < target ? Math.min(v + step, target) : Math.max(v - step, target));
+// Rounds half away from zero, so that left and right behave as exact mirrors.
+const round = (v: number) => (v < 0 ? -Math.round(-v) : Math.round(v));
 const clampLift = (v: number) => Math.max(-P.LIFT_X, Math.min(P.LIFT_X, v));
 
 export class Sim {
@@ -73,8 +75,8 @@ export class Sim {
   moverAt(i: number, t: number) {
     const m = this.arena.movers[i], half = m.period >> 1;
     const p = (t + m.phase) % m.period, k = p < half ? p : m.period - p;
-    this.mx[i] = m.x + Math.round((m.dx * k) / half);
-    this.my[i] = m.y + Math.round((m.dy * k) / half);
+    this.mx[i] = m.x + round((m.dx * k) / half);
+    this.my[i] = m.y + round((m.dy * k) / half);
   }
 
   private emit(type: number, arg: number) {
@@ -201,7 +203,8 @@ export class Sim {
     if (ok) return;
     // Squeezed: try to slip out sideways by a few pixels before calling it a crush.
     for (let d = 1; d <= P.WIGGLE; d++) {
-      for (let s = -1; s <= 1; s += 2) {
+      for (let k = -1; k <= 1; k += 2) {
+        const s = dy ? k * this.facing : k; // sideways slips mirror with the facing; vertical ones try up first
         const tx = this.x + (dy ? s * d : 0), ty = this.y + (dx ? s * d : 0);
         if (!this.blocked(tx, ty)) { this.x = tx; this.y = ty; return; }
       }
@@ -224,7 +227,7 @@ export class Sim {
 
   private moveX(amount: number) {
     this.rx += amount;
-    let m = Math.round(this.rx);
+    let m = round(this.rx);
     if (!m) return;
     this.rx -= m;
     const s = m > 0 ? 1 : -1;
@@ -242,7 +245,7 @@ export class Sim {
 
   private moveY(amount: number) {
     this.ry += amount;
-    let m = Math.round(this.ry);
+    let m = round(this.ry);
     if (!m) return;
     this.ry -= m;
     if (m < 0) {
@@ -252,8 +255,8 @@ export class Sim {
           // Corner correction: nudge sideways past a corner instead of bonking.
           let d = 1;
           for (; d <= P.CORNER; d++) {
-            if (!this.blocked(this.x + d, ny)) { this.x += d; break; }
-            if (!this.blocked(this.x - d, ny)) { this.x -= d; break; }
+            if (!this.blocked(this.x + d * this.facing, ny)) { this.x += d * this.facing; break; }
+            if (!this.blocked(this.x - d * this.facing, ny)) { this.x -= d * this.facing; break; }
           }
           if (d > P.CORNER) { this.vy = 0; this.ry = 0; return; }
         }
