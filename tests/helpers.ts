@@ -1,5 +1,5 @@
 import { parseArena, type Arena } from '../src/shared/arena';
-import { Sim, newRun, COLS, PH, F_ON, T_SOLID, IN_L, IN_R, IN_D, IN_J, IN_X, type Run } from '../src/shared/sim';
+import { Sim, newRun, parseInputs, COLS, PH, F_ON, T_SOLID, IN_L, IN_R, IN_D, IN_J, IN_X, type Run } from '../src/shared/sim';
 
 export const FLOOR = 304; // top of the floor row in the test arena
 export const GROUND_Y = FLOOR - PH;
@@ -17,19 +17,7 @@ export function box(a: Arena, c0: number, r0: number, c1 = c0, r1 = r0, t = T_SO
 }
 
 const BITS: Record<string, number> = { L: IN_L, R: IN_R, D: IN_D, J: IN_J, X: IN_X, '.': 0 };
-
-// "R30 RJ12 .5" -> 30 ticks right, 12 ticks right+jump, 5 ticks idle
-export function inputs(s: string): number[] {
-  const out: number[] = [];
-  for (const tok of s.trim().split(/\s+/)) {
-    const m = /^([LRDJX.]+)(\d*)$/.exec(tok);
-    if (!m) throw new Error(`bad input token "${tok}"`);
-    let bits = 0;
-    for (const ch of m[1]) bits |= BITS[ch];
-    for (let i = Number(m[2] || 1); i > 0; i--) out.push(bits);
-  }
-  return out;
-}
+export const inputs = parseInputs;
 
 export interface Opts { seat?: number; side?: number; ghosts?: Run[]; x?: number; y?: number; round?: number }
 

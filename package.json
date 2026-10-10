@@ -10,6 +10,7 @@
     "start": "node dist/server/main.js",
     "test": "vitest run",
     "bench": "vite-node bench/all.ts",
+    "e2e": "vite-node scripts/e2e.ts",
     "tunnel-url": "node scripts/tunnel-url.mjs"
   },
   "dependencies": {

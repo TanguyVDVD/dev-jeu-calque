@@ -1,6 +1,6 @@
 // Pure, deterministic simulation core: no DOM, no clock, no allocation per tick.
 // Physics follows the "actors and solids" model (integer positions, sub-pixel remainders).
-import type { Arena } from './arena';
+import type { Arena, Mover } from './arena';
 
 export const TILE = 16, COLS = 40, ROWS = 20, W = COLS * TILE, H = ROWS * TILE;
 export const HZ = 60, ROUND_TICKS = 15 * HZ;
@@ -35,10 +35,30 @@ export function newRun(seat: number, round: number): Run {
   return { seat, round, len: 0, x: new Int16Array(ROUND_TICKS), y: new Int16Array(ROUND_TICKS), f: new Uint8Array(ROUND_TICKS) };
 }
 
+const BITS: Record<string, number> = { L: IN_L, R: IN_R, D: IN_D, J: IN_J, X: IN_X, '.': 0 };
+
+// "R30 RJ12 .5" -> 30 ticks right, 12 ticks right+jump, 5 ticks idle. Scripted players, demos and tests.
+export function parseInputs(s: string): number[] {
+  const out: number[] = [];
+  for (const tok of s.trim().split(/\s+/)) {
+    const m = /^([LRDJX.]+)(\d*)$/.exec(tok);
+    if (!m) throw new Error(`bad input token "${tok}"`);
+    let bits = 0;
+    for (const ch of m[1]) bits |= BITS[ch];
+    for (let i = m[2] === '' ? 1 : Number(m[2]); i > 0; i--) out.push(bits);
+  }
+  return out;
+}
+
 const approach = (v: number, target: number, step: number) => (v < target ? Math.min(v + step, target) : Math.max(v - step, target));
 // Rounds half away from zero, so that left and right behave as exact mirrors.
 const round = (v: number) => (v < 0 ? -Math.round(-v) : Math.round(v));
 const clampLift = (v: number) => Math.max(-P.LIFT_X, Math.min(P.LIFT_X, v));
+
+// Moving platforms follow a fixed cycle and never react to players: a triangle wave between (x,y) and (x+dx,y+dy).
+const wave = (m: Mover, t: number) => { const p = (t + m.phase) % m.period; return (p < m.period >> 1 ? p : m.period - p) / (m.period >> 1); };
+export const moverX = (m: Mover, t: number) => m.x + round(m.dx * wave(m, t));
+export const moverY = (m: Mover, t: number) => m.y + round(m.dy * wave(m, t));
 
 export class Sim {
   arena!: Arena; seat = 0; side = 0; ghosts: Run[] = []; n = 0; rec!: Run;
@@ -71,12 +91,9 @@ export class Sim {
     for (let i = 0; i < arena.movers.length; i++) this.moverAt(i, 0);
   }
 
-  // Fixed cycle, never reacts to players: a triangle wave between (x,y) and (x+dx,y+dy).
   moverAt(i: number, t: number) {
-    const m = this.arena.movers[i], half = m.period >> 1;
-    const p = (t + m.phase) % m.period, k = p < half ? p : m.period - p;
-    this.mx[i] = m.x + round((m.dx * k) / half);
-    this.my[i] = m.y + round((m.dy * k) / half);
+    const m = this.arena.movers[i];
+    this.mx[i] = moverX(m, t); this.my[i] = moverY(m, t);
   }
 
   private emit(type: number, arg: number) {
