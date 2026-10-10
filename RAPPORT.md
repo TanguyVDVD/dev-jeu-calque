@@ -53,7 +53,7 @@ Le dernier chiffre n'est pas zéro. L'échantillonnage du tas montre qu'il ne re
 ## Ce que je n'ai pas pu vérifier
 
 - **Le jeu clavier en main.** Les sensations, l'équilibrage et le plaisir sont réglés par la simulation et la mesure, pas par le jeu. C'est la plus grosse inconnue.
-- **Le son et la manette** : écrits, jamais entendus ni tenus.
+- **Le son et la manette** : vérifiés mécaniquement seulement (`npm run e2e -- controls` : de vraies touches déplacent le personnage, une manette simulée aussi, le contexte audio tourne et produit du signal, le volume à zéro le coupe). Personne ne les a entendus ni tenus.
 - **Le tunnel nommé** : il faut ton jeton et ton domaine. Commande et variable suivent la documentation Cloudflare ; les étapes manuelles sont dans le README.
 - **Firefox et Safari** : seuls Chromium (sans interface) a été lancé.
 - **Passerelle n'a pas de grand raccourci distinct** ; Atelier (6,38 s) et Colonne (4,97 s) ont le leur, avec run de référence à deux tracés.

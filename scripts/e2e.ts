@@ -142,6 +142,60 @@ async function shots() {
   log('OK — screenshots in shots/');
 }
 
+// Real key events, a simulated gamepad and the audio output, in the training mode of a real browser.
+async function controls() {
+  const b = await browser();
+  const p = await (await b.newContext({ viewport: { width: 1280, height: 720 } })).newPage();
+  p.on('pageerror', (e) => { console.error('page error:', e.message); process.exitCode = 1; });
+  await p.goto(http);
+  await p.click('#h-train'); await p.click('#h-arenas button[data-i="0"]');
+  const sim = () => p.evaluate(() => { const s = (window as any).__calque.training.runner.sim; return { x: s.x, y: s.y, tick: s.tick, dash: s.dashT, facing: s.facing }; });
+  const fail = (what: string) => { console.error('FAIL', what); process.exitCode = 1; };
+  await p.waitForFunction(() => (window as any).__calque.training.runner.sim.tick > 5);
+  const start = await sim();
+  // keyboard, by physical position: arrows, then the WASD/ZQSD block, Space, Shift
+  await p.keyboard.down('ArrowRight'); await p.waitForTimeout(500); await p.keyboard.up('ArrowRight');
+  const a = await sim();
+  log(`ArrowRight 0.5 s: x ${start.x} -> ${a.x}`); if (a.x < start.x + 40) fail('ArrowRight');
+  await p.keyboard.down('KeyA'); await p.waitForTimeout(300); await p.keyboard.up('KeyA');
+  const l = await sim();
+  log(`KeyA (Q on AZERTY) 0.3 s: x ${a.x} -> ${l.x}, facing ${l.facing}`); if (l.x > a.x - 20) fail('KeyA');
+  await p.keyboard.down('Space'); await p.waitForTimeout(180);
+  const j = await sim(); await p.keyboard.up('Space');
+  log(`Space: y ${l.y} -> ${j.y}`); if (j.y > l.y - 20) fail('Space');
+  await p.waitForTimeout(700);
+  const d0 = await sim();
+  await p.keyboard.down('KeyD'); await p.keyboard.down('ShiftLeft'); await p.waitForTimeout(60);
+  const d = await sim(); await p.keyboard.up('ShiftLeft'); await p.waitForTimeout(200); await p.keyboard.up('KeyD');
+  const d1 = await sim();
+  log(`KeyD + Shift: dashing ${d.dash > 0}, x ${d0.x} -> ${d1.x} in 0.26 s`); if (d1.x < d0.x + 60) fail('dash');
+  // sound: unlocked by those key presses; a jump must put signal on the output
+  await p.keyboard.press('Space');
+  let peak = 0;
+  for (let i = 0; i < 12; i++) { peak = Math.max(peak, await p.evaluate(() => (window as any).__calque.audio.level())); await p.waitForTimeout(15); }
+  const state = await p.evaluate(() => (window as any).__calque.audio.state());
+  log(`audio: context ${state}, peak level ${peak.toFixed(3)} (jump + music)`); if (state !== 'running' || peak < 0.01) fail('audio');
+  await p.evaluate(() => (window as any).__calque.audio.setVolume(0)); await p.waitForTimeout(250);
+  const muted = await p.evaluate(() => (window as any).__calque.audio.level());
+  log(`audio muted: peak ${muted.toFixed(4)}`); if (muted > 0.005) fail('mute');
+  // gamepad: a standard pad with the stick pushed right, then button 0 (jump)
+  await p.waitForTimeout(600);
+  const g0 = await sim();
+  await p.evaluate(() => {
+    const pad = { axes: [1, 0, 0, 0], buttons: Array.from({ length: 16 }, () => ({ pressed: false, value: 0 })), connected: true, id: 'test pad', index: 0, mapping: 'standard', timestamp: 0 };
+    (window as any).__pad = pad;
+    navigator.getGamepads = () => [pad as any];
+    window.dispatchEvent(new Event('gamepadconnected'));
+  });
+  await p.waitForTimeout(400);
+  const g1 = await sim();
+  await p.evaluate(() => { (window as any).__pad.buttons[0].pressed = true; }); await p.waitForTimeout(180);
+  const g2 = await sim();
+  log(`gamepad: stick right 0.4 s x ${g0.x} -> ${g1.x}; button A y ${g1.y} -> ${g2.y}`); if (g1.x < g0.x + 30 || g2.y > g1.y - 20) fail('gamepad');
+  await b.close();
+  log(process.exitCode ? 'FAILED' : 'OK — keyboard, sound and gamepad drive the game in a real browser');
+}
+
 async function ws() {
   const health = await fetch(http + '/healthz');
   log('/healthz', health.status, await health.text());
@@ -155,5 +209,5 @@ async function ws() {
   });
 }
 
-await ({ bots: () => bots(Number(arg) || 2), tabs, shots, ws } as Record<string, () => Promise<void>>)[mode]();
+await ({ bots: () => bots(Number(arg) || 2), tabs, shots, ws, controls } as Record<string, () => Promise<void>>)[mode]();
 process.exit(process.exitCode ?? 0);

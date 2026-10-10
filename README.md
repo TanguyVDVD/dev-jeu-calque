@@ -109,6 +109,7 @@ npm run e2e -- bots  http://localhost:3000 4    # 4 clients automatisés : parti
 npm run e2e -- tabs  http://localhost:3000      # 2 onglets Chromium : partie + revanche, captures dans shots/
 npm run e2e -- shots http://localhost:3000      # captures des autres écrans
 npm run e2e -- ws    https://xxx.trycloudflare.com   # /healthz et WebSocket à travers le tunnel
+npm run e2e -- controls http://localhost:3000   # vraies touches, manette simulée, niveau sonore
 ```
 
 `tabs`, `shots` et le banc de rendu ont besoin de Chromium : `npx playwright install chromium`.

@@ -374,7 +374,7 @@ addEventListener('keydown', unlock, true);
 stage.addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest('button'); if (b) { audio.sfx('click'); if (e.detail > 0) b.blur(); } }); // detail is 0 for keyboard activation: Tab users keep their focus
 
 // Test and bench hook: lets an automated browser read the state and script the inputs.
-(window as any).__calque = { input, perf, get session() { return session; }, get play() { return play; } };
+(window as any).__calque = { input, perf, audio, get session() { return session; }, get play() { return play; }, get training() { return training; } };
 
 if (matchMedia('(pointer: coarse)').matches && !matchMedia('(any-pointer: fine)').matches) {
   stage.hidden = true; $('mobile').hidden = false; // touch only: a careful invitation to come back with a keyboard

@@ -3,6 +3,7 @@
 let ctx: AudioContext | null = null;
 let master: GainNode, musicBus: GainNode, noiseBuf: AudioBuffer;
 let volume = 0.7;
+let probe: AnalyserNode | null = null;
 
 function tone(freq: number, dur: number, vol: number, type: OscillatorType = 'triangle', to = freq, when = 0, bus: AudioNode = master) {
   if (!ctx) return;
@@ -78,6 +79,17 @@ export const audio = {
     const d = noiseBuf.getChannelData(0);
     for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
   },
+  // Peak level of what is being played right now, 0..1 (automated checks: is anything audible?).
+  level(): number {
+    if (!ctx) return 0;
+    if (!probe) { probe = ctx.createAnalyser(); probe.fftSize = 2048; master.connect(probe); }
+    const d = new Float32Array(probe.fftSize);
+    probe.getFloatTimeDomainData(d);
+    let peak = 0;
+    for (const v of d) peak = Math.max(peak, Math.abs(v));
+    return peak;
+  },
+  state: () => ctx?.state ?? 'none',
   setVolume(v: number) { volume = v; if (ctx) master.gain.setTargetAtTime(v, ctx.currentTime, 0.02); },
   sfx(name: string) { if (ctx && volume > 0) SFX[name]?.(); },
   // Starts the loop with `n` layers, `delay` seconds from now (the end of the countdown).

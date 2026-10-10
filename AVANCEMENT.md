@@ -25,6 +25,6 @@ Aucun : les sept jalons du brief sont terminés (voir `RAPPORT.md`).
 - Les routes de base durent 7,2 à 9,2 s et non 9 à 10 s ; le raccourci testé de « Colonne » ne gagne que 0,6 s (voir `DECISIONS.md`, « Arènes »).
 - Sur « Colonne », les deux routes de base se croisent de front au sommet : un tracé adverse y repousse le joueur qui ne le piétine pas. C'est le jeu, mais c'est la planche la plus dure pour des débutants ; « Atelier » est celle par défaut.
 - Tunnel nommé : non vérifié de bout en bout (il faut un jeton et un domaine). La commande et la variable sont celles de la documentation Cloudflare ; le tunnel rapide, lui, est vérifié.
-- Son et manette : écrits, jamais entendus ni tenus en main (pas de sortie audio ni de manette en environnement automatisé).
+- Clavier, son et manette : vérifiés mécaniquement (`npm run e2e -- controls`), jamais entendus ni tenus en main.
 - Seuls les navigateurs Chromium donnent la disposition du clavier ; ailleurs l'aide parle de « flèches ».
 - L'état est en mémoire : un redémarrage du conteneur ferme tous les ateliers.
