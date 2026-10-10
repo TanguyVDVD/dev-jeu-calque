@@ -1,0 +1,7 @@
+{
+  "enabledPlugins": {
+    "ponytail@ponytail": true,
+    "code-review@claude-plugins-official": true,
+    "ecc@ecc": true
+  }
+}
