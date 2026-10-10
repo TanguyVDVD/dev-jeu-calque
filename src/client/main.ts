@@ -73,9 +73,9 @@ stage.insertAdjacentHTML('beforeend', `
   <div class="box"><label>${TX.howto.keys}</label><dl class="keys">
     <dt>${TX.howto.move}</dt><dd id="k-move"></dd><dt>${TX.howto.jump}</dt><dd id="k-jump"></dd>
     <dt>${TX.howto.dash}</dt><dd id="k-dash"></dd><dt>${TX.howto.drop}</dt><dd>${TX.howto.dropKeys}</dd>
-    <dt>${TX.howto.emote}</dt><dd>${TX.howto.emoteKeys}</dd><dt></dt><dd class="hint" style="font-weight:400">${TX.howto.pad}</dd>
+    <dt>${TX.howto.emote}</dt><dd>${TX.howto.emoteKeys}</dd>
   </dl></div>
-  <div class="row end" style="margin-top:1.2em"><button id="w-back" class="primary">${TX.howto.back}</button></div>
+  <div class="row end" style="margin-top:1em"><span class="hint" style="flex:1">${TX.howto.pad}</span><button id="w-back" class="primary">${TX.howto.back}</button></div>
 </section>
 
 <section id="s-podium" class="screen grid" hidden>

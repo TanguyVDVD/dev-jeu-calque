@@ -257,45 +257,43 @@ export class View {
 
   // ---- frame --------------------------------------------------------------------------------
 
-  private sprite(color: number, v: number, left: number, x: number, y: number) {
-    this.ctx.drawImage(this.sprites[(color * VARIANTS + v) * 2 + left], x - PAD, y - PAD, SW, SH);
-  }
-
+  // Dynamic things are blitted in device pixels at integer positions: sharper, and integers cross
+  // the canvas API without being boxed, so a frame allocates nothing.
   draw(sc: Scene) {
-    const c = this.ctx, s = this.scale, A = sc.arena, sim = sc.sim;
+    const c = this.ctx, s = this.scale, A = sc.arena, sim = sc.sim, spr = this.sprites;
     if (!this.bg) return;
     let k = sc.k, a = sc.a;
     if (this.freeze > 0) { this.freeze--; k = this.hk; a = this.ha; } else { this.hk = k; this.ha = a; } // hit-stop is display only
     let ox = 0, oy = 0;
     if (this.shake > 0.2) {
-      if (this.shakeOn) { ox = (Math.random() - 0.5) * this.shake * s; oy = (Math.random() - 0.5) * this.shake * s; }
+      if (this.shakeOn) { ox = ((Math.random() - 0.5) * this.shake * s) | 0; oy = ((Math.random() - 0.5) * this.shake * s) | 0; }
       this.shake *= 0.82;
     }
     c.setTransform(1, 0, 0, 1, 0, 0);
     if (ox || oy) { c.fillStyle = PAPER; c.fillRect(0, 0, this.canvas.width, this.canvas.height); }
     c.drawImage(this.bg, ox, oy);
     if (sc.trail > 0.01 && this.trails) { c.globalAlpha = sc.trail; c.drawImage(this.trails, ox, oy); c.globalAlpha = 1; }
-    c.setTransform(s, 0, 0, s, ox - this.crop.x * s, oy - this.crop.y * s);
-    const kk = Math.max(k, 0);
+    const tx = ox - this.crop.x * s + 0.5, ty = oy - this.crop.y * s + 0.5, pad = PAD * s; // logical -> device: (v * s + t) | 0
+    const kk = Math.max(k, 0), k0 = Math.max(kk - 1, 0);
 
     // moving platforms
     c.fillStyle = INK;
     for (let i = 0; i < A.movers.length; i++) {
-      const m = A.movers[i], x0 = moverX(m, Math.max(kk - 1, 0)), y0 = moverY(m, Math.max(kk - 1, 0));
-      const x = x0 + (moverX(m, kk) - x0) * a, y = y0 + (moverY(m, kk) - y0) * a;
-      c.fillRect(x, y, m.w, 4); c.fillRect(x + 2, y + 4, 2, 3); c.fillRect(x + m.w - 4, y + 4, 2, 3);
+      const m = A.movers[i], x0 = moverX(m, k0), y0 = moverY(m, k0);
+      const x = ((x0 + (moverX(m, kk) - x0) * a) * s + tx) | 0, y = ((y0 + (moverY(m, kk) - y0) * a) * s + ty) | 0, w = (m.w * s) | 0, u = Math.max(1, s | 0);
+      c.fillRect(x, y, w, 4 * u); c.fillRect(x + 2 * u, y + 4 * u, 2 * u, 3 * u); c.fillRect(x + w - 4 * u, y + 4 * u, 2 * u, 3 * u);
     }
 
     // my goal breathes
     if (this.side >= 0) {
       const g = A.goal[this.side], pulse = (performance.now() % 1200) / 1200;
-      c.strokeStyle = COLORS[this.color]; c.lineWidth = 1; c.globalAlpha = 1 - pulse;
-      c.beginPath(); c.arc(g.x + g.w / 2, g.y + g.h - 13, 7 + pulse * 9, 0, 7); c.stroke(); c.globalAlpha = 1;
+      c.strokeStyle = COLORS[this.color]; c.lineWidth = s; c.globalAlpha = 1 - pulse;
+      c.beginPath(); c.arc((g.x + g.w / 2) * s + tx, (g.y + g.h - 13) * s + ty, (7 + pulse * 9) * s, 0, 7); c.stroke(); c.globalAlpha = 1;
     }
 
     // ghosts
     if (this.wasKey !== sc.newRound) { this.wasKey = sc.newRound; this.was.fill(0); }
-    const n = Math.min(sc.ghosts.length, 64);
+    const n = Math.min(sc.ghosts.length, 64), nx = (0 * s) | 0, ny = (11 * s) | 0;
     for (let i = 0; i < n; i++) {
       const g = sc.ghosts[i], col = sc.colors[g.seat];
       const on = kk < g.len && (g.f[kk] & F_ON) !== 0;
@@ -306,20 +304,21 @@ export class View {
         this.was[i] = on ? 1 : 0;
       }
       if (!on) continue;
-      let x = g.x[kk], y = g.y[kk];
+      let x = g.x[kk] * s, y = g.y[kk] * s;
       if (kk > 0 && g.f[kk - 1] & F_ON) {
-        const dx = x - g.x[kk - 1], dy = y - g.y[kk - 1];
-        if (dx > -24 && dx < 24 && dy > -24 && dy < 24) { x -= dx * (1 - a); y -= dy * (1 - a); }
+        const dx = g.x[kk] - g.x[kk - 1], dy = g.y[kk] - g.y[kk - 1];
+        if (dx > -24 && dx < 24 && dy > -24 && dy < 24) { x -= dx * (1 - a) * s; y -= dy * (1 - a) * s; }
       }
+      const X = (x + tx) | 0, Y = (y + ty) | 0;
       let v = SPEC;
       if (sim && i < sim.n) v = g.seat === sc.seat ? OWN : sim.neutral[i] ? NEUTRAL : sim.gSolid[i] ? FOE : SOFT;
       else if (g.seat === sc.seat) v = OWN;
-      this.sprite(col, v, g.f[kk] & F_LEFT ? 1 : 0, x, y);
-      if (v !== NEUTRAL) c.drawImage(this.nums[Math.min(g.round, 16) * 2 + (v === OWN || v === SOFT ? 1 : 0)], x, y + 11, 12, 9);
+      c.drawImage(spr[(col * VARIANTS + v) * 2 + (g.f[kk] & F_LEFT ? 1 : 0)], (X - pad) | 0, (Y - pad) | 0);
+      if (v !== NEUTRAL) c.drawImage(this.nums[Math.min(g.round, 16) * 2 + (v === OWN || v === SOFT ? 1 : 0)], X + nx, Y + ny);
       if (g.round === sc.newRound && k < 45) {
         // born last round: a closing ring points it out
-        const r = 20 - Math.max(k, 0) * 0.3;
-        c.strokeStyle = COLORS[col]; c.lineWidth = 1.5; c.globalAlpha = 0.8; c.beginPath(); c.arc(x + PW / 2, y + PH / 2, r, 0, 7); c.stroke(); c.globalAlpha = 1;
+        c.strokeStyle = COLORS[col]; c.lineWidth = 1.5 * s; c.globalAlpha = 0.8;
+        c.beginPath(); c.arc(X + (PW / 2) * s, Y + (PH / 2) * s, (20 - kk * 0.3) * s, 0, 7); c.stroke(); c.globalAlpha = 1;
       }
     }
 
@@ -333,7 +332,7 @@ export class View {
         if (!(g.f[t] & F_ON)) continue;
         let x = g.x[t], y = g.y[t];
         if (t > 0 && t === k - 6) { x -= (x - g.x[t - 1]) * (1 - a); y -= (y - g.y[t - 1]) * (1 - a); }
-        this.sprite(sc.colors[seat], sim || sc.seat >= 0 ? LIVE : ME, g.f[t] & F_LEFT ? 1 : 0, x, y);
+        c.drawImage(spr[(sc.colors[seat] * VARIANTS + (sim || sc.seat >= 0 ? LIVE : ME)) * 2 + (g.f[t] & F_LEFT ? 1 : 0)], (x * s + tx - pad) | 0, (y * s + ty - pad) | 0);
         this.seatX[seat] = x; this.seatY[seat] = y; this.seatOn[seat] = 1;
       }
     }
@@ -341,38 +340,40 @@ export class View {
     // me: the most contrasted thing on screen, the only one that squashes and stretches
     if (sim && !sim.dead && sim.finishTick < 0) {
       if (this.freeze === 0) { this.mx = sim.px + (sim.x - sim.px) * a; this.my = sim.py + (sim.y - sim.py) * a; }
-      const left = sim.facing < 0 ? 1 : 0, sq = this.squash;
+      const left = sim.facing < 0 ? 1 : 0, sq = this.squash, me = spr[(sc.colors[sc.seat] * VARIANTS + ME) * 2 + left];
       this.squash *= 0.8;
       if (sim.dashT) { const j = this.trailN++ & 3; this.trailX[j] = this.mx; this.trailY[j] = this.my; }
       else if (this.trailN) this.trailN = 0;
-      for (let j = 0; j < Math.min(this.trailN, 4); j++) { c.globalAlpha = 0.25; this.sprite(sc.colors[sc.seat], OWN, left, this.trailX[j], this.trailY[j]); }
+      c.globalAlpha = 0.25;
+      for (let j = 0; j < Math.min(this.trailN, 4); j++) c.drawImage(spr[(sc.colors[sc.seat] * VARIANTS + OWN) * 2 + left], (this.trailX[j] * s + tx - pad) | 0, (this.trailY[j] * s + ty - pad) | 0);
       c.globalAlpha = sim.invuln && (sim.invuln >> 2) & 1 ? 0.45 : 1;
-      const w = SW * (1 - sq * 0.16), h = SH * (1 + sq * 0.2);
       // scaled around the feet
-      c.drawImage(this.sprites[(sc.colors[sc.seat] * VARIANTS + ME) * 2 + left], this.mx - PAD + (SW - w) / 2, this.my + PH - ((SH - PAD) * h) / SH, w, h);
+      const w = (SW * (1 - sq * 0.16) * s) | 0, h = (SH * (1 + sq * 0.2) * s) | 0;
+      c.drawImage(me, (this.mx * s + tx - pad + (SW * s - w) / 2) | 0, ((this.my + PH) * s + ty - ((SH - PAD) * h) / SH) | 0, w, h);
       c.globalAlpha = 1;
       this.seatX[sc.seat] = this.mx; this.seatY[sc.seat] = this.my; this.seatOn[sc.seat] = 1;
     }
 
     // particles
     let last = -1;
+    const big = Math.max(1, (2 * s) | 0), small = Math.max(1, (1.2 * s) | 0);
     for (let j = 0; j < NPART; j++) {
       if (this.plife[j] <= 0) continue;
       this.plife[j]--; this.pvy[j] += 0.12; this.px[j] += this.pvx[j]; this.py[j] += this.pvy[j];
       if (this.pcol[j] !== last) c.fillStyle = FX[(last = this.pcol[j])];
-      const z = this.plife[j] > 8 ? 2 : 1.2;
-      c.fillRect(this.px[j], this.py[j], z, z);
+      const z = this.plife[j] > 8 ? big : small;
+      c.fillRect((this.px[j] * s + tx) | 0, (this.py[j] * s + ty) | 0, z, z);
     }
 
-    // emotes: a note pinned above whoever said it (or above their goal once they are done)
+    // emotes: a note pinned above whoever said it (or at the top of the sheet once they are gone)
     const now = performance.now();
     for (let seat = 0; seat < 4; seat++) {
       const e = this.emoteE[seat];
       if (e < 0 || !this.bubbles[e]) continue;
       const age = now - this.emoteT[seat];
       if (age > 1800) { this.emoteE[seat] = -1; continue; }
-      const pop = Math.min(1, age / 90), bx = this.seatOn[seat] ? this.seatX[seat] + PW / 2 : W / 2 + (seat - 1.5) * 70, by = this.seatOn[seat] ? this.seatY[seat] - 4 : 20;
-      c.drawImage(this.bubbles[e], Math.max(0, Math.min(W - 64, bx - 32)), Math.max(0, by - 16 * pop), 64, 16 * pop);
+      const bx = this.seatOn[seat] ? this.seatX[seat] + PW / 2 : W / 2 + (seat - 1.5) * 70, by = this.seatOn[seat] ? this.seatY[seat] - 6 : 22;
+      c.drawImage(this.bubbles[e], (Math.max(0, Math.min(W - 64, bx - 32)) * s + tx) | 0, (Math.max(0, by - 16) * s + ty) | 0);
     }
   }
 }

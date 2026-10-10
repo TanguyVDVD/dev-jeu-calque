@@ -33,7 +33,7 @@ export const TX = {
       ['Saute-leur sur la tête', "Tu rebondis, et ce tracé n'existe plus pour toi jusqu'à la fin de la feuille."],
       ['Premier à la mire', "3 points au premier, 1 point à ceux qui arrivent. Qui n'arrive pas laisse un tracé de 15 secondes."],
     ],
-    keys: 'Les touches', move: 'Bouger', jump: 'Sauter', dash: 'Dash', drop: 'Descendre à travers un de tes tracés', dropKeys: 'Bas + saut',
+    keys: 'Les touches', move: 'Bouger', jump: 'Sauter', dash: 'Dash', drop: 'Traverser un de tes tracés', dropKeys: 'Bas + saut',
     emote: 'Un mot aux autres', emoteKeys: '1 2 3 4', pad: 'Une manette fonctionne aussi.',
     back: 'Retour',
   },

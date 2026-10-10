@@ -1,0 +1,34 @@
+# docker compose up -d --build                    the game alone, on http://localhost:3000
+# docker compose --profile quick up -d --build    + a quick tunnel (random trycloudflare.com address)
+# docker compose --profile named up -d --build    + a named tunnel (stable address, token in .env)
+services:
+  game:
+    build: .
+    image: calque-game
+    restart: unless-stopped
+    environment:
+      PORT: "3000"
+    ports:
+      - "${GAME_PORT:-3000}:3000"
+
+  # Quick tunnel: no account, no domain. The address changes at every start; read it with `npm run tunnel-url`.
+  cloudflared-quick:
+    profiles: [quick]
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel --no-autoupdate --url http://game:3000
+    depends_on:
+      game:
+        condition: service_healthy
+
+  # Named tunnel: the public hostname is set in the Cloudflare dashboard and points to http://game:3000.
+  cloudflared-named:
+    profiles: [named]
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: "${TUNNEL_TOKEN:-}"
+    depends_on:
+      game:
+        condition: service_healthy

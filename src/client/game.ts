@@ -23,20 +23,20 @@ export interface Hud {
 
 const SFX: Record<number, string> = { [EV_JUMP]: 'jump', [EV_LAND]: 'land', [EV_DASH]: 'dash', [EV_STOMP]: 'stomp', [EV_KO]: 'ko', [EV_RESPAWN]: 'respawn', [EV_GOAL]: 'goal' };
 export const perf = { frames: 0, ms: 0, max: 0 };
-const stages = new Set<Stage>();
+const stages: Stage[] = [];
 
 function loop(now: number) {
   requestAnimationFrame(loop);
-  if (!stages.size) return;
+  if (!stages.length) return;
   const t0 = performance.now();
-  for (const s of stages) s.frame(now);
+  for (let i = 0; i < stages.length; i++) stages[i].frame(now);
   const dt = performance.now() - t0;
   perf.frames++; perf.ms += dt; if (dt > perf.max) perf.max = dt;
 }
 requestAnimationFrame(loop);
 
-export const show = (s: Stage) => { s.view.resize(); stages.add(s); };
-export const hide = (s: Stage | null) => { if (s) stages.delete(s); };
+export const show = (s: Stage) => { s.view.resize(); if (!stages.includes(s)) stages.push(s); };
+export const hide = (s: Stage | null) => { const i = s ? stages.indexOf(s) : -1; if (i >= 0) stages.splice(i, 1); };
 export const resizeAll = () => { for (const s of stages) s.view.resize(); };
 
 const blank = (arena: Arena): Scene => ({ arena, k: -1, a: 0, ghosts: [], sim: null, seat: -1, colors: [0, 1, 2, 3], live: null, newRound: 0, trail: 0 });

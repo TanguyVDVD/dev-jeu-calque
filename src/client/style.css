@@ -116,9 +116,9 @@ button.small { font-size: 1.25em; padding: .3em .7em; }
 .card canvas { display: block; width: 100%; aspect-ratio: 3 / 2; border: .16em solid var(--ink); }
 .card h3 { font-size: 1.75em; margin: .35em 0 .15em; }
 .card p { font-size: 1.2em; color: var(--graphite); }
-.keys { display: grid; grid-template-columns: repeat(3, auto 1fr); gap: .2em 1.2em; align-items: baseline; }
+.keys { display: grid; grid-template-columns: repeat(3, auto auto); justify-content: space-between; gap: .2em 1em; align-items: baseline; }
 .keys dt { font-size: 1.2em; color: var(--graphite); }
-.keys dd { font-size: 1.3em; font-weight: 500; }
+.keys dd { font-size: 1.25em; font-weight: 500; white-space: nowrap; }
 
 /* ---- results, podium, settings ------------------------------------------------------------- */
 #results { position: absolute; left: 50%; top: 53%; translate: -50% -50%; rotate: -.6deg; width: 46em; background: var(--light); border: .2em solid var(--ink); box-shadow: .5em .5em 0 var(--c0); padding: 1.2em 1.8em 1.4em; z-index: 4; animation: stamp .14s cubic-bezier(.2, 1.4, .4, 1); }
