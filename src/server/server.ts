@@ -8,7 +8,7 @@ import { realClock, type Clock } from '../shared/clock';
 import { MAX_ROOMS, MAX_MSG, PROTOCOL, T, type ClientMsg } from '../shared/protocol';
 import { Room, type Conn, type Player } from './room';
 
-export interface ServerOpts { port?: number; root?: string; clock?: Clock }
+export interface ServerOpts { port?: number; root?: string; clock?: Clock; rateScale?: number } // rateScale: tests run game time faster, so messages come faster too
 export interface Server { port: number; rooms: Map<string, Room>; close(): Promise<void> }
 
 const TYPES: Record<string, string> = {
@@ -91,7 +91,7 @@ export function createServer(opts: ServerOpts = {}): Promise<Server> {
 
     ws.on('message', (data: Buffer, isBinary: boolean) => {
       const now = Date.now();
-      tokens = Math.min(BUCKET, tokens + ((now - last) / 1000) * REFILL_PER_S) - 1; last = now;
+      tokens = Math.min(BUCKET, tokens + ((now - last) / 1000) * REFILL_PER_S * (opts.rateScale ?? 1)) - 1; last = now;
       if (tokens < 0) { ws.close(1008); return; }
       seen.set(ws, now);
       if (isBinary) { if (room && player) room.onFrame(player, new Uint8Array(data.buffer, data.byteOffset, data.length)); return; }

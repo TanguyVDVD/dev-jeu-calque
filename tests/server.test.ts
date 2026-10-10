@@ -15,7 +15,7 @@ let server: Server, clock: Clock, url: string, bots: Bot[] = [];
 
 async function boot(scale: number) {
   clock = realClock(scale);
-  server = await createServer({ clock });
+  server = await createServer({ clock, rateScale: scale });
   url = `ws://localhost:${server.port}/ws`;
 }
 const bot = (name: string, o = {}) => { const b = new Bot(url, name, clock, o); bots.push(b); return b; };

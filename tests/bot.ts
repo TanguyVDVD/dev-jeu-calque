@@ -54,7 +54,7 @@ export class Bot {
   stop() { clearInterval(this.timer); this.s.leave(); }
 }
 
-export async function until(cond: () => boolean, what: string, ms = 40000) {
+export async function until(cond: () => boolean, what: string, ms = 25000) {
   const t0 = Date.now();
   while (!cond()) {
     if (Date.now() - t0 > ms) throw new Error('timeout waiting for ' + what);
