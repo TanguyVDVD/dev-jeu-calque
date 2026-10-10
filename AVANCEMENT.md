@@ -17,7 +17,7 @@ Aucun : les sept jalons du brief sont terminés (voir `RAPPORT.md`).
 ## Reste à faire (rien de bloquant)
 
 - Bonus de la section 14 : équipes 2 contre 2, adversaire d'entraînement, commandes tactiles.
-- Runs de référence pour les **grands** raccourcis (deux tracés ou courte échelle) : ils reposent pour l'instant sur les règles générales testées, pas sur un run par planche.
+- Un grand raccourci propre à « Passerelle » (Atelier et Colonne ont le leur, avec run de référence), et un second raccourci à un tracé prouvé par planche.
 - Équilibrage à la main : les valeurs physiques et les planches ont été réglées par la simulation et la mesure, jamais clavier en main.
 
 ## Problèmes connus

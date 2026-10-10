@@ -166,7 +166,7 @@ export class Room {
         if (isHost && this.phase === 'podium') this.toLobby(true);
         return;
       case 'leave':
-        if (this.phase === 'lobby') { const c = p.conn; p.conn = null; c?.close(); this.remove(p); } else if (p.conn) { const c = p.conn; this.drop(p, c); c.close(); }
+        if (this.phase === 'lobby') { const c = p.conn; p.conn = null; c?.close(); this.remove(p); } else if (p.conn) { const c = p.conn; this.drop(p, c); p.offAt = -1e12; this.checkRoundOver(); c.close(); } // left on purpose: nobody waits
         return;
       case 'emote':
         if (p.seat >= 0 && isInt(m.e, 0, 3)) this.broadcast({ t: 'emote', seat: p.seat, e: m.e });

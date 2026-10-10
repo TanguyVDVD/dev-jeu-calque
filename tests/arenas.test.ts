@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { ARENAS } from '../src/shared/arena';
 import { COLS, ROWS, W, H, PW, HZ, T_SOLID, T_SPIKE, type Run } from '../src/shared/sim';
 import { start, play } from './helpers';
-import { ROUTES, routeInputs } from './routes';
+import { GRAND, ROUTES, routeInputs } from './routes';
 
 describe('arenas', () => {
   it('there are three, each with reference runs', () => {
@@ -48,6 +48,19 @@ describe('arenas', () => {
         const alone = play(start(a), routeInputs(r.shortcut));
         expect(alone.finishTick === -1 || alone.finishTick > base).toBe(true);
         console.log(`${a.name}: shortcut ${(sc.finishTick / HZ).toFixed(2)} s (gain ${((base - sc.finishTick) / HZ).toFixed(2)} s)`);
+      });
+
+      const grand = GRAND[a.id];
+      if (grand) it('grand shortcut: needs two allied ghosts, and beats the one-ghost shortcut', () => {
+        const base = play(start(a), routeInputs(r.base)).finishTick;
+        const one = play(start(a, { ghosts: [play(start(a), routeInputs(r.setup)).rec] }), routeInputs(r.shortcut)).finishTick;
+        const g1 = play(start(a, { round: 1 }), routeInputs(grand.setups[0])).rec;
+        const g2 = play(start(a, { ghosts: [g1], round: 2 }), routeInputs(grand.setups[1])).rec;
+        const run = play(start(a, { ghosts: [g1, g2], round: 3 }), routeInputs(grand.run));
+        expect(run.finishTick).toBeGreaterThan(0);
+        expect(run.finishTick).toBeLessThan(one);
+        for (const ghosts of [[], [g1]]) expect(play(start(a, { ghosts }), routeInputs(grand.run)).finishTick).toBe(-1);
+        console.log(`${a.name}: grand shortcut ${(run.finishTick / HZ).toFixed(2)} s (gain ${((base - run.finishTick) / HZ).toFixed(2)} s)`);
       });
     });
   }

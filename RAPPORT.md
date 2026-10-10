@@ -26,7 +26,7 @@ npm run tunnel-url                              # l'adresse à partager
 | 2 à 4 clients : salon → podium → revanche | `npm run e2e -- bots` : 3 clients à travers le conteneur, 2 à travers le tunnel, 4 lors d'un passage précédent ; `npm run e2e -- tabs` : deux onglets Chromium |
 | Simulation locale sans attendre le réseau | test « with 300 ms of latency each way… » |
 | Fantômes identiques chez tous les clients | tests de partie (comparaison tick par tick entre clients et avec l'enregistrement local) ; revérifié par `e2e bots` |
-| Chaque règle de la section 2 testée | 60 tests au vert (`npm test`) |
+| Chaque règle de la section 2 testée | 62 tests au vert (`npm test`) |
 | Runs de référence des trois planches | base 9,20 s / 7,20 s / 9,07 s ; raccourci avec tracé allié 7,60 s / 6,58 s / 5,73 s |
 | Budgets de la section 9 | `npm run bench` : « all budgets held » (tableau ci-dessous) |
 | Déconnexion rattrapée sans bloquer | test « a disconnection never blocks the others… » + deux tests de coupure |
@@ -56,7 +56,7 @@ Le dernier chiffre n'est pas zéro. L'échantillonnage du tas montre qu'il ne re
 - **Le son et la manette** : écrits, jamais entendus ni tenus.
 - **Le tunnel nommé** : il faut ton jeton et ton domaine. Commande et variable suivent la documentation Cloudflare ; les étapes manuelles sont dans le README.
 - **Firefox et Safari** : seuls Chromium (sans interface) a été lancé.
-- **Les grands raccourcis** des planches n'ont pas de run de référence.
+- **Passerelle n'a pas de grand raccourci distinct** ; Atelier (6,38 s) et Colonne (4,97 s) ont le leur, avec run de référence à deux tracés.
 
 ## Décisions qui méritent ton attention
 

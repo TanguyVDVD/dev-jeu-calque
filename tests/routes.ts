@@ -28,6 +28,20 @@ export const ROUTES: Record<string, { base: string; setup: string; shortcut: str
   },
 };
 
+// Grand shortcuts: two allied ghosts, left by two earlier runs (the second one uses the first).
+export const GRAND: Record<string, { setups: [string, string]; run: string }> = {
+  // One trace under the first trapdoor, one under the third: two levels are skipped twice.
+  atelier: {
+    setups: [ROUTES.atelier.setup, 'R90 RJ12 R13 RJ6 R20 RJ18 R12 .3 J8 .16 J22 .8 L6 LJ12 L13 R12 RJ20 R12 L14 .583'],
+    run: 'R90 RJ12 R13 RJ6 R20 RJ18 R12 .3 J8 .16 J22 .8 L6 LJ12 L13 R12 RJ20 R12 L14 .3 J8 .16 J22 .8 L9',
+  },
+  // Two traces stacked at the foot of the column: the low tunnel, five tiles up.
+  colonne: {
+    setups: ['R27 RJ22 R30 RX1 R23 .797', 'R27 RJ22 R30 RX1 R23 .3 J8 .786'],
+    run: 'R27 RJ22 R30 RX1 R23 .3 J14 .6 RJ30 R40 .19 RJ24 R33 RJ24 R2',
+  },
+};
+
 // The arena is symmetric: a player starting on the right plays the same run with left and right swapped.
 export function routeInputs(s: string, side = 0): number[] {
   const ins = inputs(s);

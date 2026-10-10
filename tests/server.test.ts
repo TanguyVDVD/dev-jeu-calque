@@ -258,7 +258,7 @@ describe('the network never touches the local simulation', () => {
     await until(() => a.s.room!.players[1]?.ready === true, 'ready');
     a.s.send({ t: 'start' });
     await until(() => a.results.length === 2 && b.results.length === 2, 'two rounds');
-    expect(a.s.rtt).toBeGreaterThanOrEqual(600);
+    expect(a.s.rtt).toBeGreaterThanOrEqual(590); // 2 x 300 ms, minus timer granularity under the accelerated clock
     expect(a.rounds[0].total).toBe(8); // default length of a two-player game
     expect(AUTO_ROUNDS.slice(2)).toEqual([8, 7, 6]); // by number of players: 2, 3, 4
 

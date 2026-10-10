@@ -158,6 +158,7 @@ Sans runs de référence, `tests/arenas.test.ts` échoue : c'est voulu.
 | Le tunnel nommé redémarre en boucle | `TUNNEL_TOKEN` vide ou faux dans `.env` : `docker compose --profile named logs cloudflared-named`. |
 | « Cet atelier n'existe pas, ou plus » | Un atelier vide est fermé au bout de 30 s, et tous disparaissent au redémarrage du conteneur (l'état est en mémoire). |
 | « Connexion perdue. On recolle la feuille… » | Le client se reconnecte seul et reprend sa place. Si ça dure : `docker compose ps` doit afficher `healthy`. |
+| « Cette place vient de rouvrir dans un autre onglet » | Deux onglets du même navigateur partagent la même place (le jeton de reconnexion). Pour tester seul à deux joueurs, ouvre le lien dans une fenêtre privée ou un autre navigateur. |
 | Pas de son | Le son démarre au premier clic ou à la première touche ; vérifie le volume dans Réglages (Échap). |
 | Les lettres affichées ne sont pas celles de mon clavier | Seuls les navigateurs Chromium donnent la disposition ; ailleurs le jeu parle de « flèches ». Les touches fonctionnent pareil. |
 | Sur téléphone | Le jeu demande un clavier et le dit. |
