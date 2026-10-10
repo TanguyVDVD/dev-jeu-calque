@@ -2,7 +2,7 @@
 // No DOM here: the browser and the simulated test clients share this file.
 import type { Clock } from '../shared/clock';
 import { decodeRun, FRAME_FULL } from '../shared/codec';
-import { PROTOCOL, T, type ClientMsg, type PodiumMsg, type ResultsMsg, type RoundMsg, type ServerMsg } from '../shared/protocol';
+import { CLOSE_REPLACED, PROTOCOL, T, type ClientMsg, type PodiumMsg, type ResultsMsg, type RoundMsg, type ServerMsg } from '../shared/protocol';
 import { HZ, newRun, type Run } from '../shared/sim';
 
 export type RoomMsg = Extract<ServerMsg, { t: 'room' }>;
@@ -61,9 +61,11 @@ export class Session {
       const d = ev.data;
       if (this.o.delay) this.o.clock.after(this.o.delay, () => this.receive(d)); else this.receive(d);
     };
-    ws.onclose = () => {
+    ws.onclose = (ev: { code?: number }) => {
       if (ws !== this.ws) return;
       this.cancelPing?.();
+      // The same seat was opened elsewhere (second tab): give up instead of fighting over it.
+      if (ev?.code === CLOSE_REPLACED && !this.stopped) { this.stopped = true; this.online = false; this.on.error?.('taken'); return; }
       if (this.online) { this.online = false; this.on.status?.(false); }
       // The seat is kept server-side: come back with the token and get a full resync.
       if (!this.stopped) this.o.clock.after(Math.min(400 * 2 ** this.retries++, 3000), () => { if (!this.stopped) this.open(); });

@@ -25,19 +25,18 @@ export function createServer(opts: ServerOpts = {}): Promise<Server> {
   const clock = opts.clock ?? realClock();
   const root = opts.root && existsSync(opts.root) ? normalize(opts.root) : null;
   const rooms = new Map<string, Room>();
-  const cache = new Map<string, File | null>();
+  const cache = new Map<string, File>();
 
   const load = (rel: string): File | null => {
     if (!root) return null;
     let f = cache.get(rel);
     if (f !== undefined) return f;
     const path = normalize(join(root, rel));
-    f = null;
-    if (path.startsWith(root + sep) && existsSync(path) && TYPES[extname(path)]) {
-      f = { body: readFileSync(path), type: TYPES[extname(path)] };
-      if (existsSync(path + '.br')) f.br = readFileSync(path + '.br');
-      if (existsSync(path + '.gz')) f.gz = readFileSync(path + '.gz');
-    }
+    // Misses are never cached: the cache is bounded by the files that exist.
+    if (!path.startsWith(root + sep) || !TYPES[extname(path)] || !existsSync(path)) return null;
+    f = { body: readFileSync(path), type: TYPES[extname(path)] };
+    if (existsSync(path + '.br')) f.br = readFileSync(path + '.br');
+    if (existsSync(path + '.gz')) f.gz = readFileSync(path + '.gz');
     cache.set(rel, f);
     return f;
   };
@@ -86,7 +85,7 @@ export function createServer(opts: ServerOpts = {}): Promise<Server> {
     if (wss.clients.size > MAX_SOCKETS) { ws.close(1013); return; }
     let room: Room | null = null, player: Player | null = null;
     let tokens = BUCKET, last = Date.now();
-    const conn: Conn = { send: (d) => { if (ws.readyState === ws.OPEN) ws.send(d); }, close: () => ws.close() };
+    const conn: Conn = { send: (d) => { if (ws.readyState === ws.OPEN) ws.send(d); }, close: (code) => ws.close(code) };
     const say = (o: object) => conn.send(JSON.stringify(o));
     seen.set(ws, Date.now());
 

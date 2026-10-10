@@ -159,6 +159,7 @@ export class Sandbox implements Stage {
   scene: Scene; private sim = new Sim(); private t0 = 0;
   constructor(public view: View, arena: Arena, color: number) { this.scene = blank(arena); this.set(arena, color); }
   set(arena: Arena, color: number) {
+    if (arena === this.scene.arena && color === this.scene.colors[0] && this.scene.sim) return; // lobby chatter must not send the player back to the start
     this.scene.arena = arena; this.scene.seat = 0; this.scene.colors = [color, color, color, color]; this.scene.sim = this.sim;
     this.view.setArena(arena, 0, color);
     this.sim.reset(arena, 0, 0, []); this.t0 = performance.now();

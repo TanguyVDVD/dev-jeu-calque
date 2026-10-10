@@ -2,7 +2,7 @@ import { describe, it, expect, afterEach } from 'vitest';
 import WebSocket from 'ws';
 import { ARENAS } from '../src/shared/arena';
 import { realClock, type Clock } from '../src/shared/clock';
-import { PROTOCOL, ROUND_DOUBLE, ROUND_NORMAL, ROUND_TIEBREAK, T } from '../src/shared/protocol';
+import { AUTO_ROUNDS, PROTOCOL, ROUND_DOUBLE, ROUND_NORMAL, ROUND_TIEBREAK, T } from '../src/shared/protocol';
 import { HZ, type Run } from '../src/shared/sim';
 import { Runner } from '../src/client/runner';
 import { createServer, type Server } from '../src/server/server';
@@ -218,6 +218,34 @@ describe('a whole game between simulated clients', () => {
   });
 });
 
+describe('one seat, one connection', () => {
+  it('a second tab with the same token takes the seat, and the first one lets go instead of fighting back', async () => {
+    await boot(10);
+    const store = new Map<string, string>();
+    const mem = { get: (k: string) => store.get(k) ?? null, set: (k: string, v: string) => void store.set(k, v) };
+    const first = bot('Ada', { store: mem }).join();
+    await until(() => !!first.s.room, 'room');
+    const second = bot('Ada', { store: mem }).join(first.s.code);
+    await until(() => first.errors.includes('taken'), 'first tab told');
+    await new Promise((r) => setTimeout(r, 300)); // long enough for several reconnection attempts, if there were any
+    expect(second.s.online).toBe(true);
+    expect(first.s.online).toBe(false);
+    expect(second.s.room!.players).toHaveLength(1);
+    expect(second.s.id).toBe(first.s.id);
+  });
+
+  it('a cut during the countdown costs nothing: the run starts on the round clock after the reconnection', async () => {
+    await boot(10);
+    const [a, b] = await lobby(['Ada', 'Bob'], { arena: COLONNE, rounds: 4 });
+    a.s.send({ t: 'start' });
+    await until(() => b.rounds.length === 1, 'round announced');
+    b.runner = null; // as if the announcement had been missed
+    b.s.cut();
+    await until(() => a.results.length === 1, 'results');
+    expect(a.results[0].rows.map((r) => [r.tick, r.pts])).toEqual([[a.recs[0].len, 3], [a.recs[0].len, 3]]);
+  });
+});
+
 describe('the network never touches the local simulation', () => {
   it('with 300 ms of latency each way, the local trajectory is exactly the offline one and nobody loses rank', async () => {
     await boot(6);
@@ -225,12 +253,14 @@ describe('the network never touches the local simulation', () => {
     await until(() => !!a.s.room, 'room');
     const b = bot('Local').join(a.s.code);
     await until(() => b.s.seat === 1, 'seated');
-    a.s.send({ t: 'set', arena: 0, rounds: 4 });
+    a.s.send({ t: 'set', arena: 0 });
     b.s.send({ t: 'set', ready: true });
     await until(() => a.s.room!.players[1]?.ready === true, 'ready');
     a.s.send({ t: 'start' });
     await until(() => a.results.length === 2 && b.results.length === 2, 'two rounds');
     expect(a.s.rtt).toBeGreaterThanOrEqual(600);
+    expect(a.rounds[0].total).toBe(8); // default length of a two-player game
+    expect(AUTO_ROUNDS.slice(2)).toEqual([8, 7, 6]); // by number of players: 2, 3, 4
 
     const arena = ARENAS[0], ins = routeInputs(ROUTES.atelier.base, 0);
     // Round 1, no ghost; round 2, among the two ghosts of round 1 as distributed by the server.

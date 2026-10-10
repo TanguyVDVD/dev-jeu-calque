@@ -1,5 +1,5 @@
 # Build stage: compiles the client and bundles the server into one file.
-FROM node:20-alpine AS build
+FROM node:22-alpine AS build
 WORKDIR /app
 ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 COPY package.json package-lock.json ./
@@ -8,7 +8,7 @@ COPY . .
 RUN npm run build
 
 # Runtime stage: Node LTS, the compiled files, nothing else (ws is inside the bundle).
-FROM node:20-alpine
+FROM node:22-alpine
 ENV NODE_ENV=production PORT=3000
 WORKDIR /app
 COPY --from=build /app/package.json ./

@@ -223,7 +223,7 @@ function onRoom(m: RoomMsg) {
   const s = session!;
   room = m;
   if (location.pathname !== '/r/' + m.code) history.replaceState(null, '', '/r/' + m.code);
-  if (m.phase !== 'lobby') { chips(s.results?.scores ?? s.round?.scores ?? null); return; }
+  if (m.phase !== 'lobby') { chips(s.results?.scores ?? s.round?.scores ?? null); podiumButtons(); return; }
   const me = m.players.find((p) => p.id === s.id), isHost = m.host === s.id;
   if ($('s-lobby').hidden) {
     screen('s-lobby');
@@ -323,9 +323,7 @@ function onPodium(m: PodiumMsg) {
     d.append(el('b', '', title), document.createTextNode(text));
     awards.append(d);
   }
-  const host = s.isHost;
-  for (const id of ['p-rematch', 'p-arena', 'p-lobby']) $<HTMLButtonElement>(id).disabled = !host;
-  $('p-note').textContent = host ? `${TX.podium.rematch} : ${TX.podium.rematchHint}.` : TX.podium.waitHost;
+  podiumButtons();
   // The final ballet: the last round, every ghost, in a loop.
   const runs: Run[] = [];
   for (const row of s.runs) for (const r of row ?? []) if (r && r.len) runs.push(r);
@@ -333,6 +331,12 @@ function onPodium(m: PodiumMsg) {
   ballet = new Replay(balletView, ARENAS[m.arena], runs.slice(-64), [0, 1, 2, 3].map(colorOf), m.rounds);
   show(ballet);
   audio.sfx('goal');
+}
+// Also called on every room update: if the host leaves on the podium, the next one gets the buttons.
+function podiumButtons() {
+  const host = !!session?.isHost;
+  for (const id of ['p-rematch', 'p-arena', 'p-lobby']) $<HTMLButtonElement>(id).disabled = !host;
+  $('p-note').textContent = host ? `${TX.podium.rematch} : ${TX.podium.rematchHint}.` : TX.podium.waitHost;
 }
 $('p-rematch').onclick = () => session?.send({ t: 'rematch' });
 $('p-lobby').onclick = () => session?.send({ t: 'lobby' });
@@ -366,7 +370,8 @@ input.onKey = (code) => {
 const unlock = () => { audio.unlock(); audio.setVolume(prefs.vol); };
 addEventListener('pointerdown', unlock, true);
 addEventListener('keydown', unlock, true);
-stage.addEventListener('click', (e) => { if ((e.target as HTMLElement).closest('button')) audio.sfx('click'); });
+// A clicked button gives the focus back at once: otherwise the jump key (Space) would press it again.
+stage.addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest('button'); if (b) { audio.sfx('click'); b.blur(); } });
 
 // Test and bench hook: lets an automated browser read the state and script the inputs.
 (window as any).__calque = { input, perf, get session() { return session; }, get play() { return play; } };

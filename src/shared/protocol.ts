@@ -14,6 +14,7 @@ export const T = {
   HAVE: 2000, // extra wait for clients that have not confirmed they hold every run
   PING: 5000, // application heartbeat (well under Cloudflare's idle cut)
   DEAD: 30000, // a silent connection is dropped
+  REJOIN: 3000, // a player who just dropped mid-round is still waited for this long (network blips)
   LOBBY_SEAT: 20000, // a disconnected player keeps their seat in the lobby this long
   EMPTY: 30000, // a room with nobody connected is closed
   PODIUM: 180000, // then back to the lobby
@@ -54,6 +55,9 @@ export type ClientMsg =
   | { t: 'have'; n: number }
   | { t: 'emote'; e: number }
   | { t: 'ping'; c: number };
+
+// WebSocket close code: this seat was taken over by a newer connection with the same token. Do not reconnect.
+export const CLOSE_REPLACED = 4001;
 
 // A ghost is identified across clients by its round (1-based) and seat.
 export const ghostId = (round: number, seat: number) => (round - 1) * MAX_SEATS + seat;

@@ -5,14 +5,14 @@ import { ARENAS } from '../shared/arena';
 import type { Clock } from '../shared/clock';
 import { decodeRun, encodeRun, FRAME_CHUNK, FRAME_FULL, MAX_FRAME } from '../shared/codec';
 import {
-  AUTO_ROUNDS, MAX_ROUNDS, MAX_SEATS, MAX_SPECTATORS, MAX_TIEBREAKS, MIN_ROUNDS, PROTOCOL, ROUND_DOUBLE, ROUND_NORMAL, ROUND_TIEBREAK, T,
+  AUTO_ROUNDS, CLOSE_REPLACED, MAX_ROUNDS, MAX_SEATS, MAX_SPECTATORS, MAX_TIEBREAKS, MIN_ROUNDS, PROTOCOL, ROUND_DOUBLE, ROUND_NORMAL, ROUND_TIEBREAK, T,
   cleanName, type Award, type ClientMsg, type Phase, type PodiumMsg, type ResultsMsg, type RoundMsg, type ServerMsg,
 } from '../shared/protocol';
 import { ROUND_TICKS, newRun, type Run } from '../shared/sim';
 
-export interface Conn { send(data: string | Uint8Array): void; close(): void }
+export interface Conn { send(data: string | Uint8Array): void; close(code?: number): void }
 
-export interface Player { id: number; token: string; name: string; color: number; ready: boolean; seat: number; conn: Conn | null }
+export interface Player { id: number; token: string; name: string; color: number; ready: boolean; seat: number; conn: Conn | null; offAt: number }
 
 interface Game {
   rematch: number; n: number; total: number; tiebreaks: number; kind: number; startAt: number;
@@ -44,12 +44,12 @@ export class Room {
   join(conn: Conn, name: unknown, token: unknown): Player | null {
     let p = typeof token === 'string' ? this.players.find((q) => q.token === token) : undefined;
     if (p) {
-      p.conn?.close(); // the newest connection wins the seat
+      p.conn?.close(CLOSE_REPLACED); // the newest connection wins the seat, and the old one must not fight back
       p.conn = conn;
     } else {
       const seated = this.players.filter((q) => q.seat >= 0);
       if (this.players.length - seated.length >= MAX_SPECTATORS && (this.phase !== 'lobby' || seated.length >= MAX_SEATS)) return null;
-      p = { id: this.nextId++, token: randomBytes(12).toString('hex'), name: cleanName(name), color: -1, ready: false, seat: -1, conn };
+      p = { id: this.nextId++, token: randomBytes(12).toString('hex'), name: cleanName(name), color: -1, ready: false, seat: -1, conn, offAt: 0 };
       this.players.push(p);
       if (this.phase === 'lobby') this.seat(p);
     }
@@ -72,10 +72,13 @@ export class Room {
   // The connection dropped. The seat is kept: during a game until it ends, in the lobby for a while.
   drop(p: Player, conn: Conn) {
     if (p.conn !== conn) return; // already replaced by a reconnection
+    const since = (p.offAt = this.clock.now());
     p.conn = null; p.ready = false;
     this.fixHost();
-    if (this.phase === 'lobby') this.clock.after(T.LOBBY_SEAT, () => { if (!p.conn && this.phase === 'lobby') this.remove(p); });
-    if (this.phase === 'round') this.checkRoundOver();
+    if (this.phase !== 'lobby' && p.seat < 0) this.players = this.players.filter((q) => q !== p); // a spectator holds nothing
+    if (this.phase === 'lobby') this.clock.after(T.LOBBY_SEAT, () => { if (!p.conn && p.offAt === since && this.phase === 'lobby') this.remove(p); });
+    // A network blip must not cost the round: the others wait a few seconds for a reconnection, never more.
+    if (this.phase === 'round') this.clock.after(T.REJOIN, () => { if (this.phase === 'round') this.checkRoundOver(); });
     this.broadcastRoom();
     if (!this.players.some((q) => q.conn)) {
       this.emptyTimer?.();
@@ -236,7 +239,9 @@ export class Room {
   // Nothing ever waits for someone absent: only connected players can hold a round open.
   private checkRoundOver() {
     const g = this.game!;
-    if (this.phase === 'round' && g.seats.every((s) => g.done[s] || !this.players.some((p) => p.seat === s && p.conn))) this.endRound();
+    const now = this.clock.now();
+    const awaited = (s: number) => this.players.some((p) => p.seat === s && (p.conn || now - p.offAt < T.REJOIN));
+    if (this.phase === 'round' && g.seats.every((s) => g.done[s] || !awaited(s))) this.endRound();
   }
 
   private endRound() {

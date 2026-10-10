@@ -59,6 +59,8 @@ export function runnerFor(s: Session, m: RoundMsg, prev: Runner | null): Runner 
   if (!me) return null; // spectator
   if (m.you) {
     if (prev && prev.round === m.n) { prev.resume(m.you.len, m.you.done); return prev; }
+    // Nothing of this run exists yet (cut during the countdown): start it now, the clock catch-up does the rest.
+    if (!m.you.done && m.you.len === 0) return new Runner(s, ARENAS[m.arena], me.seat, me.side, s.ghosts(), m.n);
     if (!m.you.done) s.send({ t: 'done', n: m.n, tick: -1, st: [], cr: [], ld: 0, ko: 0 });
     return null;
   }

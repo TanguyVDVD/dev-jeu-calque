@@ -84,6 +84,7 @@ export const TX = {
   ],
   errors: {
     nocode: "Cet atelier n'existe pas, ou plus.", full: 'Cet atelier est complet.', rooms: 'Trop d’ateliers ouverts. Réessaie dans un instant.',
+    taken: 'Cette place vient de rouvrir dans un autre onglet.',
     version: 'Recharge la page : le jeu a changé de version.', bad: 'Message refusé.',
   },
   mobile: ['Il faut un clavier.', `${GAME_NAME} se joue à la course et au saut, au pixel près. Ouvre ce lien sur un ordinateur.`],
